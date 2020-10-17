@@ -78,7 +78,6 @@ $posts->bindParam(1,$start,PDO::PARAM_INT);
 $posts->execute();
 // ページングおわり
 
-
 // 返信機能
 if(isset($_REQUEST['res'])){
   $response=$db->prepare('SELECT m.name,m.picture,p.* FROM members m,posts p WHERE m.id=p.member_id AND p.id=? AND is_deleted=0 ORDER BY p.created DESC');
@@ -140,7 +139,6 @@ if(!empty($_POST['delete_retweet'])){
 
 }
 
-
 // いいね！機能 DB登録
 if(!empty($_POST['like_add'])){
   $likeCount=$db->prepare('UPDATE posts SET like_count=like_count+1 WHERE id=?');
@@ -180,11 +178,6 @@ function makeLink($value){
 }
 
 ?>
-<pre>
-<?php
-  var_dump($member['id']);
-?>
-</pre>
 
 <!DOCTYPE html>
 <html lang="ja">
@@ -300,11 +293,17 @@ function makeLink($value){
             $postMember=$db->prepare('SELECT name,picture FROM members WHERE id=?');
             $postMember->execute(array($post['post_member_id']));
             $pm=$postMember->fetch();
+
+            $postdate=$db->prepare('SELECT created FROM posts WHERE id=?');
+            $postdate->execute(array($post['post_id']));
+            $pd=$postdate->fetch();
+
             ?>
-            <img src="member_picture/<?php echo h($pm['picture']); ?>" width="48" height="48" alt="<?php echo h($pm['name']); ?>">
-            <p><span class="name">(<?php echo h($pm['name']); ?>)</span></p>
+              <img src="member_picture/<?php echo h($pm['picture']); ?>" width="48" height="48" alt="<?php echo h($pm['name']); ?>">
+              <p><span class="name">(<?php echo h($pm['name']); ?>)</span></p>
           
-            <?php echo mb_substr(h($post['post']),0,40); ?><?php echo mb_strlen(h($post['post']))>40 ? '...' : ''; ?></p>
+              <?php echo mb_substr(h($post['post']),0,40); ?><?php echo mb_strlen(h($post['post']))>40 ? '...' : ''; ?></p>
+              <p class="day"><?php echo h($pd['created']); ?></p>
             </a>
           </div>
           <?php endif; ?>
