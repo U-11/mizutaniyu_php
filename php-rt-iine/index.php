@@ -38,7 +38,8 @@ if(!empty($_POST['message'])){
       $com_rt->bindParam(1,$_POST['message'],PDO::PARAM_STR);
       $com_rt->bindParam(2,$member['id'],PDO::PARAM_INT);
       $com_rt->execute();
-      
+
+    // リツイートカウント
       $com_rt_cnt=$db->prepare('UPDATE posts SET rt_count=rt_count+1 WHERE id=?');
       $com_rt_cnt->bindParam(1,$_POST['rt_post_id'],PDO::PARAM_INT);
       $com_rt_cnt->execute();
@@ -63,12 +64,14 @@ if($page==''){
 }
 $page=max($page,1);
 
+$url='index.php?page='.$page;
+
 $counts=$db->query('SELECT COUNT(*) AS cnt FROM posts WHERE is_deleted=0');
 $cnt=$counts->fetch();
 $maxPage=ceil($cnt['cnt']/5);
 $page=min($page,$maxPage);
-
 $start=($page-1)*5;
+
 // RT元のTL表示用&&投稿のTL表示用
 $posts=$db->prepare('SELECT m.name,m.picture,p.*,r.rt_member_id,r.rt_id,r.post_member_id,r.post_id,r.post FROM members m,posts p LEFT JOIN retweets r ON p.id=r.rt_id WHERE m.id=p.member_id AND p.is_deleted=0 ORDER BY p.created DESC LIMIT ?,5');
 $posts->bindParam(1,$start,PDO::PARAM_INT);
@@ -86,53 +89,57 @@ if(isset($_REQUEST['res'])){
 
 // リツイート機能
 if(!empty($_POST['retweet'])){
-  // RTできる状態か重複チェック
-  $rtCheck=$db->prepare('SELECT * FROM retweets WHERE post_id=? AND is_deleted=0');
-  $rtCheck->bindParam(1,$_POST['retweet'],PDO::PARAM_INT);
-  $rtCheck->execute();
-  $rc=$rtCheck->fetch();
-  
-  if(!$rc ||($_POST['retweet']!=$rc['post_id'] && $member['id']!=$rc['rt_member_id'])){
-    // 重複なしの場合、プレビュー表示
-    $retweets=$db->prepare('SELECT m.name,m.picture,p.* FROM members m,posts p WHERE m.id=p.member_id AND p.id=? AND p.is_deleted=0 ORDER BY p.created DESC');
-    $retweets->bindParam(1,$_POST['retweet'],PDO::PARAM_INT);
-    $retweets->execute();
-    $rt=$retweets->fetch();
-    
-  }else{
-    $error['post']='duplicate';
-    // header('Location:index.php');
-    // exit();
-  }
-    // リツイートのDB登録
-  if(!empty($_POST['rt_post_id'])){
-    // リツイートカウント
-    $rtCount=$db->prepare('UPDATE posts SET rt_count=rt_count+1 WHERE id=?');
-    $rtCount->bindParam(1,$_POST['rt_post_id'],PDO::PARAM_INT);
-    $rtCount->execute();
-
-    if($_POST['message']==''){
-      // コメントなしリツイートの登録
-      $nom_rt=$db->prepare('INSERT INTO posts SET message="RT",member_id=?,created=NOW()');
-      $nom_rt->bindParam(1,$member['id'],PDO::PARAM_INT);
-      $nom_rt->execute();
-      
-      $nom_rt_cnt=$db->prepare('UPDATE posts SET rt_count=rt_count+1 WHERE id=?');
-      $nom_rt_cnt->bindParam(1,$_POST['rt_post_id'],PDO::PARAM_INT);
-      $nom_rt_cnt->execute();
-
-      $nomRt=$db->prepare('INSERT INTO retweets SET rt_member_id=?,rt_id=?,post_member_id,post_id=?,post=?,created=NOW()');
-      $nomRt->bindParam(1,$member['id'],PDO::PARAM_INT);
-      $nomRt->bindParam(2,$new,PDO::PARAM_INT);
-      $nomRt->bindParam(3,$_POST['post_member_id'],PDO::PARAM_INT);
-      $nomRt->bindParam(4,$_POST['rt_post_id'],PDO::PARAM_INT);
-      $nomRt->bindParam(5,$_POST['post'],PDO::PARAM_STR);
-      $nomRt->execute();
-    }
-    header('Location:index.php');
-    exit();
-  }
+  // 重複なしの場合、プレビュー表示
+  $retweets=$db->prepare('SELECT m.name,m.picture,p.* FROM members m,posts p WHERE m.id=p.member_id AND p.id=? AND p.is_deleted=0');
+  $retweets->bindParam(1,$_POST['retweet'],PDO::PARAM_INT);
+  $retweets->execute();
+  $rt=$retweets->fetch();
 }
+
+// コメントなしリツイートのDB登録
+if(!empty($_POST['rt_post_id'])){
+  if($_POST['message']==''){
+    // コメントなしリツイートの登録
+    $nom_rt=$db->prepare('INSERT INTO posts SET message="RT",member_id=?,created=NOW()');
+    $nom_rt->bindParam(1,$member['id'],PDO::PARAM_INT);
+    $nom_rt->execute();
+
+    // リツイートカウント
+    $nom_rt_cnt=$db->prepare('UPDATE posts SET rt_count=rt_count+1 WHERE id=?');
+    $nom_rt_cnt->bindParam(1,$_POST['rt_post_id'],PDO::PARAM_INT);
+    $nom_rt_cnt->execute();
+
+    $nomRt=$db->prepare('INSERT INTO retweets SET rt_member_id=?,rt_id=?,post_member_id=?,post_id=?,post=?,created=NOW()');
+    $nomRt->bindParam(1,$member['id'],PDO::PARAM_INT);
+    $nomRt->bindParam(2,$new,PDO::PARAM_INT);
+    $nomRt->bindParam(3,$_POST['post_member_id'],PDO::PARAM_INT);
+    $nomRt->bindParam(4,$_POST['rt_post_id'],PDO::PARAM_INT);
+    $nomRt->bindParam(5,$_POST['post'],PDO::PARAM_STR);
+    $nomRt->execute();
+  }
+  header('Location:index.php');
+  exit();
+}
+
+// リツイート 取り消し
+if(!empty($_POST['delete_retweet'])){
+  $rtDec=$db->prepare('UPDATE posts SET rt_count=rt_count-1 WHERE id=?');
+  $rtDec->bindParam(1,$_POST['post_id'],PDO::PARAM_INT);
+  $rtDec->execute();
+
+  $rtMessageDelete=$db->prepare('UPDATE posts SET is_deleted=1 WHERE id=?');
+  $rtMessageDelete->bindParam(1,$_POST['rt_destination'],PDO::PARAM_INT);
+  $rtMessageDelete->execute();
+
+  $rtDelete=$db->prepare('UPDATE retweets SET is_deleted=1 WHERE rt_id=?');
+  $rtDelete->bindParam(1,$_POST['rt_destination'],PDO::PARAM_INT);
+  $rtDelete->execute();
+
+  header('Location:'.$url);
+  exit();
+
+}
+
 
 // いいね！機能 DB登録
 if(!empty($_POST['like_add'])){
@@ -145,11 +152,11 @@ if(!empty($_POST['like_add'])){
   $likeSet->bindParam(2,$_POST['like_post'],PDO::PARAM_INT);
   $likeSet->execute();
 
-  header('Location:index.php');
+  header('Location:'.$url);
   exit();
 }
 
-// いいね！ 取り消し
+// いいね！ 取消し
 if(!empty($_POST['delete_like'])){
   $likeDec=$db->prepare('UPDATE posts SET like_count=like_count-1 WHERE id=?');
   $likeDec->bindParam(1,$_POST['like_post'],PDO::PARAM_INT);
@@ -160,7 +167,7 @@ if(!empty($_POST['delete_like'])){
   $likeDelete->bindParam(2,$_POST['like_post'],PDO::PARAM_INT);
   $likeDelete->execute();
 
-  header('Location:index.php');
+  header('Location:'.$url);
   exit();
 }
 
@@ -198,11 +205,11 @@ function makeLink($value){
         <form action="" method="post">
           <dl>
             <dt><?php echo h($member['name']); ?>さん、メッセージをどうぞ</dt>
-            <dd><textarea name="message" cols="50" rows="5" <?php if(isset($_POST['retweet']) && $error['post']!='duplicate'){echo 'placeholder="コメントをつけてリツイート"';} ?>><?php echo h($message) ?? NULL; ?></textarea>
+            <dd><textarea name="message" cols="50" rows="5" <?php if(isset($_POST['retweet'])){echo 'placeholder="コメントをつけてリツイート"';} ?>><?php echo h($message) ?? NULL; ?></textarea>
             <input type="hidden" name="reply_post_id" value="<?php echo h($_REQUEST['res']); ?>"></dd>
           </dl>
           <!-- リツイート投稿プレビュー -->
-          <?php if(isset($_POST['retweet']) && $error['post']!='duplicate'): ?>
+          <?php if(isset($_POST['retweet'])): ?>
             <div class="rt-container">
               <p>RT</p>
               <a class="rt-link" href="view.php?id=<?php echo h($rt['id']); ?>">
@@ -217,10 +224,12 @@ function makeLink($value){
             <?php endif; ?>
             <!-- リツイート投稿プレビュー終わり -->
             
-          <div class="submit"><input type="submit" value="投稿する">
-          <?php if($_POST['retweet']): ?>
-            <a class="cancel" href="index.php?page=<?php echo $page; ?>">やめる</a>
-          <?php endif; ?></div>
+          <div class="submit">
+            <input type="submit" value="投稿する">
+            <?php if($_POST['retweet']): ?>
+            <a class="cancel" href="<?php echo $url; ?>">やめる</a>
+            <?php endif; ?>
+          </div>
         </form>
   
       <!-- 投稿タイムライン -->
@@ -244,55 +253,65 @@ function makeLink($value){
               <a href="delete.php?id=<?php echo h($post['id']); ?>" style="color:#f33;">削除</a>
                 <?php endif; ?>
             </p>
-       
-        <!-- リツイート元 -->
-        <?php if($post['rt_id']): ?>
-        <div class="rt">
-          <a class="rt-link" href="view.php?id=<?php echo h($post['post_id']); ?>">
-          <?php
-          $postMember=$db->prepare('SELECT name,picture FROM members WHERE id=?');
-          $postMember->execute(array($post['post_member_id']));
-          $pm=$postMember->fetch();
-          ?>
-          <img src="member_picture/<?php echo h($pm['picture']); ?>" width="48" height="48" alt="<?php echo h($pm['name']); ?>">
-          <p><span class="name">(<?php echo h($pm['name']); ?>)</span></p>
-
-          <?php echo mb_substr(h($post['post']),0,40); ?><?php echo mb_strlen(h($post['post']))>40 ? '...' : ''; ?></p>
-          </a>
-        </div>
-        <?php endif; ?>
-        <!-- リツイート元ここまで -->
-
+          </div>
+          
           <!-- いいね重複チェック -->
           <ul class="res">
-            <?php
-            $likes=$db->prepare('SELECT * FROM likes WHERE post_id=? AND is_deleted=0');
-            $likes->execute(array($post['id']));
-            $like=$likes->fetch();
-            ?>
-            <?php if(empty($like) || ($member['id']!=$like['like_member_id'] && $post['id']!=$like['post_id'])): ?>
+          <?php
+          $likes=$db->prepare('SELECT * FROM likes WHERE like_member_id=? AND post_id=? AND is_deleted=0');
+          $likes->execute(array($member['id'],$post['id']));
+          $like=$likes->fetch();
+          ?>
 
+          <?php if(!$like): ?>
             <!-- いいね!登録 -->
-            <li><form action="" method="post"><input type="submit" name="like_add" value="いいね！"></li>
-            <li><?php if($post['like_count']>0){echo $like_cnt['like_count'];} ?><input type="hidden" name="like_member" value="<?php echo h($member['id']); ?>"><input type="hidden" name="like_post" value="<?php echo h($post['id']); ?>"></form></li>
+            <li><form action="" method="post"><input type="submit" name="like_add" value="いいね！"><input type="hidden" name="like_member" value="<?php echo h($member['id']); ?>"><input type="hidden" name="like_post" value="<?php echo h($post['id']); ?>"></form></li>
+
             <?php else: ?>
-
-            <!-- いいね!済（取消し） -->
-            <li><form action="" method="post"><input  class="delete" type="submit" name="delete_like" value="いいね！"><input type="hidden" name="like_member" value="<?php echo h($member['id']); ?>"><input type="hidden" name="like_post" value="<?php echo h($post['id']); ?>"></li>
-            <li><?php if($post['like_count']>0){echo h($post['like_count']);} ?></li>
+            <!-- いいね取消し -->
+            <li><form action="" method="post"><input  class="delete" type="submit" name="delete_like" value="いいね！"><input type="hidden" name="like_member" value="<?php echo h($member['id']); ?>"><input type="hidden" name="like_post" value="<?php echo h($post['id']); ?>"></form></li>
             <?php endif; ?>
+            <li><?php if($post['like_count']>0){echo $post['like_count'];} ?></li>
 
-            <!-- リツイートボタン -->
-            <li><form action="" method="post"><input type="submit" name="retweet-button" value="リツイート"></li>
+            <!-- リツイート重複チェック -->
+            <?php
+            $rt_destination=$db->prepare('SELECT * FROM retweets WHERE  rt_member_id=? AND post_id=? AND is_deleted=0');
+            $rt_destination->execute(array($member['id'],$post['id']));
+            $rtD=$rt_destination->fetch();
+            ?>
+
+            <?php if(!$rtD): ?>
+            <!-- リツイート投稿 -->
+            <li><form action="" method="post"><input type="submit" name="retweet-button" value="リツイート"><input type="hidden" name="retweet" value="<?php echo h($post['id']); ?>"><input type="hidden" name="rt_member" value="<?php echo h($post['member_id']); ?>"><input type="hidden" name="rt_src" value="<?php echo h($post['message']); ?>"></form></li>
+            
+            <?php else: ?>
+            <!-- リツイート取消し -->
+            <li><form action="" method="post"><input class="delete" type="submit" name="delete_retweet" value="リツイート"><input type="hidden" name="post_id" value="<?php echo h($post['id']); ?>"><input type="hidden" name="rt_destination" value="<?php echo h($rtD['rt_id']); ?>"></form></li>
+            <?php endif; ?>
             <li><?php if($post['rt_count']>0){echo h($post['rt_count']);} ?>
-            <input type="hidden" name="retweet" value="<?php echo h($post['id']); ?>">
-            <input type="hidden" name="rt_member" value="<?php echo h($post['member_id']); ?>">
-            <input type="hidden" name="rt_src" value="<?php echo h($post['message']); ?>">
-            </form>
             </li>
           </ul>
-        <?php endforeach; ?>
-      </div>
+
+          <!-- リツイート元 -->
+          <?php if($post['rt_id']): ?>
+          <div class="rt">
+            <a class="rt-link" href="view.php?id=<?php echo h($post['post_id']); ?>">
+            <?php
+            $postMember=$db->prepare('SELECT name,picture FROM members WHERE id=?');
+            $postMember->execute(array($post['post_member_id']));
+            $pm=$postMember->fetch();
+            ?>
+            <img src="member_picture/<?php echo h($pm['picture']); ?>" width="48" height="48" alt="<?php echo h($pm['name']); ?>">
+            <p><span class="name">(<?php echo h($pm['name']); ?>)</span></p>
+          
+            <?php echo mb_substr(h($post['post']),0,40); ?><?php echo mb_strlen(h($post['post']))>40 ? '...' : ''; ?></p>
+            </a>
+          </div>
+          <?php endif; ?>
+          <!-- リツイート元ここまで -->
+
+        </div>
+      <?php endforeach; ?>
       <!-- 投稿タイムライン終わり -->
       
       <ul class="paging">
