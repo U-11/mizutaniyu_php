@@ -199,7 +199,7 @@ function makeLink($value){
           <dl>
             <dt><?php echo h($member['name']); ?>さん、メッセージをどうぞ</dt>
             <dd><textarea name="message" cols="50" rows="5" <?php if(isset($_POST['retweet'])){echo 'placeholder="コメントをつけてリツイート"';} ?>><?php echo h($message) ?? NULL; ?></textarea>
-            <input type="hidden" name="reply_post_id" value="<?php echo h($_REQUEST['res']); ?>"></dd>
+            <input type="hidden" name="reply_post_id" value="<?php echo h($_REQUEST['res']) ?? NULL; ?>"></dd>
           </dl>
           <!-- リツイート投稿プレビュー -->
           <?php if(isset($_POST['retweet'])): ?>
@@ -219,7 +219,7 @@ function makeLink($value){
             
           <div class="submit">
             <input type="submit" value="投稿する">
-            <?php if($_POST['retweet']): ?>
+            <?php if(!empty($_POST['retweet'])): ?>
             <a class="cancel" href="<?php echo $url; ?>">やめる</a>
             <?php endif; ?>
           </div>
