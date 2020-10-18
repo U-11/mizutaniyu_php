@@ -4,7 +4,7 @@ if(!isset($_SESSION)){
 }
 require('dbconnect.php');
 
-if($_COOKIE['email']!=='' && $_COOKIE['password']!==''){
+if($_COOKIE['email']!='' && $_COOKIE['password']!=''){
   $_POST['email']=$_COOKIE['email'];
   $_POST['password']=$_COOKIE['password'];
   $_POST['save']='on';
