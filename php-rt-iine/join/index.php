@@ -4,16 +4,16 @@ require('../dbconnect.php');
 
 // 入力内容確認
 if(!empty($_POST)){
-  if(isset($_POST['name']) && $_POST['name']==''){
+  if(isset($_POST['name']) && $_POST['name']===''){
     $error['name']='blank';
   }
-  if(isset($_POST['email']) && $_POST['email']==''){
+  if(isset($_POST['email']) && $_POST['email']===''){
     $error['email']='blank';
   }
   if(strlen($_POST['password']) < 7 ){
     $error['password']='length';
   }
-  if(isset($_POST['password']) && $_POST['password']==''){
+  if(isset($_POST['password']) && $_POST['password']===''){
     $error['password']='blank';
   }
   if(isset($_FILES['image']['name'])){
@@ -26,8 +26,11 @@ if(!empty($_POST)){
       $error['image']='type';
     }
   }
-  // メールアドレスの重複確認
+  // メールアドレスの形式＆重複確認
   if(empty($error)){
+    if(!preg_match("/^([a-zA-Z0-9])+([a-zA-Z0-9\?\*\[|\]%'=~^\{\}\/\+!#&\$\._-])*@([a-zA-Z0-9_-])+\.([a-zA-Z0-9\._-]+)+$/", $_POST['email'])){
+      $error['email']='type';
+    }
     $member=$db->prepare('SELECT COUNT(*) AS cnt FROM members WHERE email=?');
     $member->execute(array($_POST['email']));
     $record=$member->fetch();
@@ -47,7 +50,7 @@ if(!empty($_POST)){
 }
 
 // リライト
-if(isset($_REQUEST['action']) && $_REQUEST['action']=='rewrite'){
+if(isset($_REQUEST['action']) && $_REQUEST['action']==='rewrite'){
   $_POST=$_SESSION['join'];
   $error['rewrite']='true';
 }
@@ -81,31 +84,33 @@ function h($value){
       <dl>
         <dt><label for="name">ニックネーム</label><span class="required">必須</span></dt>
         <dd><input type="test" id="name" name="name" value="<?php echo h($_POST['name']) ?? NULL; ?>"></dd>
-        <?php if(isset($error['name']) && $error['name']=='blank'): ?>
+        <?php if(isset($error['name']) && $error['name']==='blank'): ?>
         <p class="error">ニックネームを入力してください</p>
         <?php endif; ?>
 
         <dt><label for="email">メールアドレス</label><span class="required">必須</span></dt>
         <dd><input type="email" id="email" name="email" value="<?php echo h($_POST['email']) ?? NULL; ?>"></dd>
-        <?php if(isset($error['email']) && $error['email']=='blank'): ?>
+        <?php if(isset($error['email']) && $error['email']==='blank'): ?>
         <p class="error">メールアドレスを入力してください</p>
         <?php endif; ?>
-        <?php if(isset($_POST['email']) && $error['email']=='duplicate'): ?>
-          <p class="error">メールアドレスが既に登録されています
-          </p>
+        <?php if(isset($error['email']) && $error['email']==='type'): ?>
+        <p class="error"><?php echo 'メールアドレスの形式で入力してください'; ?></p>
+        <?php endif; ?>
+        <?php if(isset($_POST['email']) && $error['email']==='duplicate'): ?>
+        <p class="error">メールアドレスが既に登録されています</p>
         <?php endif; ?>
         <dt><label for="password">パスワード</label><span class="required">必須</span></dt>
         <dd><input type="password" id="password" name="password" value="<?php echo h($_POST['password']) ?? NULL; ?>"></dd>
-        <?php if(isset($error['password']) && $error['password']=='blank'): ?>
+        <?php if(isset($error['password']) && $error['password']==='blank'): ?>
         <p class="error">パスワードを入力してください</p>
         <?php endif; ?>
-        <?php if(isset($error['password']) && $error['password']=='length'): ?>
+        <?php if(isset($error['password']) && $error['password']==='length'): ?>
         <p class="error">パスワードを8文字以上で入力してください</p>
         <?php endif; ?>
 
         <dt>写真など</dt>
         <dd><input type="file" name="image" size="35"></dd>
-        <?php if(isset($error['image']) && $error['image']=='type'): ?>
+        <?php if(isset($error['image']) && $error['image']==='type'): ?>
         <p class="error">写真などは「.gif」「.jpg」または「.ng」を指定してください</p>
         <?php endif; ?>
         <?php if(!empty($error)): ?>

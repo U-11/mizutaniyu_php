@@ -4,14 +4,14 @@ if(!isset($_SESSION)){
 }
 require('dbconnect.php');
 
-if($_COOKIE['email']!='' && $_COOKIE['password']!=''){
+if($_COOKIE['email']!=='' && $_COOKIE['password']!==''){
   $_POST['email']=$_COOKIE['email'];
   $_POST['password']=$_COOKIE['password'];
   $_POST['save']='on';
 }
 
 if(!empty($_POST)){
-  if($_POST['email']!='' && $_POST['password']!=''){
+  if($_POST['email']!=='' && $_POST['password']!==''){
     $login=$db->prepare('SELECT * FROM members WHERE email=? AND password=?');
     $login->execute(array(
       $_POST['email'],
@@ -27,7 +27,6 @@ if(!empty($_POST)){
         setcookie('email',$_POST['email'],time()+60*60*24*14);
         setcookie('password',$_POST['password'],time()+60*60*24*14);
       }
-
       header('location:index.php');
       exit();
     }else{
@@ -67,11 +66,11 @@ function h($value){
     <p><a href="./join/index.php">&laquo;入会手続きをする</a></p>
     <form action="" method="post">
       <dl>
-        <?php if(isset($error['login']) && $error['login']=='blank'): ?>
+        <?php if(isset($error['login']) && $error['login']==='blank'): ?>
         <p class="error">メールアドレスとパスワードが入力されていません。</p>
         <?php endif; ?>
 
-        <?php if(isset($error['login']) && $error['login']=='failed'): ?>
+        <?php if(isset($error['login']) && $error['login']==='failed'): ?>
         <p class="error">ログインに失敗しました。ただしく入力してください。</p>
         <?php endif; ?>
       
