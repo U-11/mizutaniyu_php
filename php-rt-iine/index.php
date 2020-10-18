@@ -4,7 +4,7 @@ if(!isset($_SESSION)){
 }
 require('dbconnect.php');
 
-if(isset($_SESSION['id']) && $_SESSION['time']+3600>time()){
+if(isset($_SESSION['id']) && is_numeric($_SESSION['id']) && $_SESSION['time']+3600>time()){
   $_SESSION['time']=time();
 
   $members=$db->prepare('SELECT * FROM members WHERE id=?');
@@ -22,28 +22,26 @@ $new=$np['new']+1;
 // 通常の投稿の登録
 if(!empty($_POST['message'])){
   if(empty($_POST['rt_post_id'])){
-    if($_POST['message']!=''){
-      $message=$db->prepare('INSERT INTO posts SET message=?,member_id=?,created=NOW()');
-      $message->execute(array(
-        $_POST['message'],
-        $member['id']
-      ));
-      header('Location:index.php');
-      exit();
-    }
+    $message=$db->prepare('INSERT INTO posts SET message=?,member_id=?,created=NOW()');
+    $message->execute(array(
+      $_POST['message'],
+      $member['id']
+    ));
+    header('Location:index.php');
+    exit();
   }else{
-    // コメントありリツイートをDBに登録
-    if($_POST['message']!=''){
+    if(is_numeric($_POST['rt_post_id']) && is_numeric($_POST['post_member_id'])){
+      // コメントありリツイートをDBに登録
       $com_rt=$db->prepare('INSERT INTO posts SET message=?,member_id=?,created=NOW()');
       $com_rt->bindParam(1,$_POST['message'],PDO::PARAM_STR);
       $com_rt->bindParam(2,$member['id'],PDO::PARAM_INT);
       $com_rt->execute();
-
-    // リツイートカウント
+      
+      // リツイートカウントプラス
       $com_rt_cnt=$db->prepare('UPDATE posts SET rt_count=rt_count+1 WHERE id=?');
       $com_rt_cnt->bindParam(1,$_POST['rt_post_id'],PDO::PARAM_INT);
       $com_rt_cnt->execute();
-
+      
       $comRt=$db->prepare('INSERT INTO retweets SET rt_member_id=?,rt_id=?,post_member_id=?,post_id=?,post=?,created=NOW()');
       $comRt->bindParam(1,$member['id'],PDO::PARAM_INT);
       $comRt->bindParam(2,$new,PDO::PARAM_INT);
@@ -58,8 +56,10 @@ if(!empty($_POST['message'])){
 }
 
 // ページング(１ページ５投稿)
-$page=$_REQUEST['page'] ?? NULL;
-if($page==''){
+if(is_numeric($_REQUEST['page'])){
+  $page=$_REQUEST['page'] ?? NULL;
+}
+if($page===''){
   $page=1;
 }
 $page=max($page,1);
@@ -79,7 +79,7 @@ $posts->execute();
 // ページングおわり
 
 // 返信機能
-if(isset($_REQUEST['res'])){
+if(isset($_REQUEST['res']) && is_numeric($_REQUEST['res'])){
   $response=$db->prepare('SELECT m.name,m.picture,p.* FROM members m,posts p WHERE m.id=p.member_id AND p.id=? AND is_deleted=0 ORDER BY p.created DESC');
   $response->execute(array($_REQUEST['res']));
   $table=$response->fetch();
@@ -89,32 +89,36 @@ if(isset($_REQUEST['res'])){
 // リツイート機能
 if(!empty($_POST['retweet'])){
   // 重複なしの場合、プレビュー表示
-  $retweets=$db->prepare('SELECT m.name,m.picture,p.* FROM members m,posts p WHERE m.id=p.member_id AND p.id=? AND p.is_deleted=0');
-  $retweets->bindParam(1,$_POST['retweet'],PDO::PARAM_INT);
-  $retweets->execute();
-  $rt=$retweets->fetch();
+  if(is_numeric($_POST['retweet'])){
+    $retweets=$db->prepare('SELECT m.name,m.picture,p.* FROM members m,posts p WHERE m.id=p.member_id AND p.id=? AND p.is_deleted=0');
+    $retweets->bindParam(1,$_POST['retweet'],PDO::PARAM_INT);
+    $retweets->execute();
+    $rt=$retweets->fetch();
+  }
 }
 
 // コメントなしリツイートのDB登録
 if(!empty($_POST['rt_post_id'])){
-  if($_POST['message']==''){
-    // コメントなしリツイートの登録
-    $nom_rt=$db->prepare('INSERT INTO posts SET message="RT",member_id=?,created=NOW()');
-    $nom_rt->bindParam(1,$member['id'],PDO::PARAM_INT);
-    $nom_rt->execute();
-
-    // リツイートカウント
-    $nom_rt_cnt=$db->prepare('UPDATE posts SET rt_count=rt_count+1 WHERE id=?');
-    $nom_rt_cnt->bindParam(1,$_POST['rt_post_id'],PDO::PARAM_INT);
-    $nom_rt_cnt->execute();
-
-    $nomRt=$db->prepare('INSERT INTO retweets SET rt_member_id=?,rt_id=?,post_member_id=?,post_id=?,post=?,created=NOW()');
-    $nomRt->bindParam(1,$member['id'],PDO::PARAM_INT);
-    $nomRt->bindParam(2,$new,PDO::PARAM_INT);
-    $nomRt->bindParam(3,$_POST['post_member_id'],PDO::PARAM_INT);
-    $nomRt->bindParam(4,$_POST['rt_post_id'],PDO::PARAM_INT);
-    $nomRt->bindParam(5,$_POST['post'],PDO::PARAM_STR);
-    $nomRt->execute();
+  if($_POST['message']===''){
+    if(is_numeric($_POST['rt_post_id']) && is_numeric($_POST['post_member_id'])){
+      // コメントなしリツイートの登録
+      $nom_rt=$db->prepare('INSERT INTO posts SET message="RT",member_id=?,created=NOW()');
+      $nom_rt->bindParam(1,$member['id'],PDO::PARAM_INT);
+      $nom_rt->execute();
+      
+      // リツイートカウント
+      $nom_rt_cnt=$db->prepare('UPDATE posts SET rt_count=rt_count+1 WHERE id=?');
+      $nom_rt_cnt->bindParam(1,$_POST['rt_post_id'],PDO::PARAM_INT);
+      $nom_rt_cnt->execute();
+    
+     $nomRt=$db->prepare('INSERT INTO retweets SET rt_member_id=?,rt_id=?,post_member_id=?,post_id=?,post=?,created=NOW()');
+      $nomRt->bindParam(1,$member['id'],PDO::PARAM_INT);
+      $nomRt->bindParam(2,$new,PDO::PARAM_INT);
+      $nomRt->bindParam(3,$_POST['post_member_id'],PDO::PARAM_INT);
+      $nomRt->bindParam(4,$_POST['rt_post_id'],PDO::PARAM_INT);
+      $nomRt->bindParam(5,$_POST['post'],PDO::PARAM_STR);
+      $nomRt->execute();
+    }
   }
   header('Location:index.php');
   exit();
@@ -122,51 +126,58 @@ if(!empty($_POST['rt_post_id'])){
 
 // リツイート 取り消し
 if(!empty($_POST['delete_retweet'])){
-  $rtDec=$db->prepare('UPDATE posts SET rt_count=rt_count-1 WHERE id=?');
-  $rtDec->bindParam(1,$_POST['post_id'],PDO::PARAM_INT);
-  $rtDec->execute();
-
-  $rtMessageDelete=$db->prepare('UPDATE posts SET is_deleted=1 WHERE id=?');
-  $rtMessageDelete->bindParam(1,$_POST['rt_destination'],PDO::PARAM_INT);
-  $rtMessageDelete->execute();
-
-  $rtDelete=$db->prepare('UPDATE retweets SET is_deleted=1 WHERE rt_id=?');
-  $rtDelete->bindParam(1,$_POST['rt_destination'],PDO::PARAM_INT);
-  $rtDelete->execute();
-
-  header('Location:'.$url);
-  exit();
-
+  if(is_numeric($_POST['post_id']) && is_numeric($_POST['rt_destination'])){
+    $rtDec=$db->prepare('UPDATE posts SET rt_count=rt_count-1 WHERE id=?');
+    $rtDec->bindParam(1,$_POST['post_id'],PDO::PARAM_INT);
+    $rtDec->execute();
+    // RTカウントのマイナス
+    $rtMessageDelete=$db->prepare('UPDATE posts SET is_deleted=1 WHERE id=?');
+    $rtMessageDelete->bindParam(1,$_POST['rt_destination'],PDO::PARAM_INT);
+    $rtMessageDelete->execute();
+    
+    $rtDelete=$db->prepare('UPDATE retweets SET is_deleted=1 WHERE rt_id=?');
+    $rtDelete->bindParam(1,$_POST['rt_destination'],PDO::PARAM_INT);
+    $rtDelete->execute();
+    
+    header('Location:'.$url);
+    exit();
+  }
 }
 
 // いいね！機能 DB登録
 if(!empty($_POST['like_add'])){
-  $likeCount=$db->prepare('UPDATE posts SET like_count=like_count+1 WHERE id=?');
-  $likeCount->bindParam(1,$_POST['like_post'],PDO::PARAM_INT);
-  $likeCount->execute();
-
-  $likeSet=$db->prepare('INSERT INTO likes SET like_member_id=?,post_id=?,created=NOW()');
-  $likeSet->bindParam(1,$_POST['like_member'],PDO::PARAM_INT);
-  $likeSet->bindParam(2,$_POST['like_post'],PDO::PARAM_INT);
-  $likeSet->execute();
-
-  header('Location:'.$url);
-  exit();
+  if(is_numeric($_POST['like_member']) && is_numeric($_POST['like_post'])){
+    // いいねカウントプラス
+    $likeCount=$db->prepare('UPDATE posts SET like_count=like_count+1 WHERE id=?');
+    $likeCount->bindParam(1,$_POST['like_post'],PDO::PARAM_INT);
+    $likeCount->execute();
+    
+    $likeSet=$db->prepare('INSERT INTO likes SET like_member_id=?,post_id=?,created=NOW()');
+    $likeSet->bindParam(1,$_POST['like_member'],PDO::PARAM_INT);
+    $likeSet->bindParam(2,$_POST['like_post'],PDO::PARAM_INT);
+    $likeSet->execute();
+    
+    header('Location:'.$url);
+    exit();
+  }
 }
 
 // いいね！ 取消し
 if(!empty($_POST['delete_like'])){
-  $likeDec=$db->prepare('UPDATE posts SET like_count=like_count-1 WHERE id=?');
-  $likeDec->bindParam(1,$_POST['like_post'],PDO::PARAM_INT);
-  $likeDec->execute();
-
-  $likeDelete=$db->prepare('UPDATE likes SET is_deleted=1 WHERE like_member_id=? AND post_id=? AND is_deleted=0');
-  $likeDelete->bindParam(1,$_POST['like_member'],PDO::PARAM_INT);
-  $likeDelete->bindParam(2,$_POST['like_post'],PDO::PARAM_INT);
-  $likeDelete->execute();
-
-  header('Location:'.$url);
-  exit();
+  if(is_numeric($_POST['like_member']) && is_numeric($_POST['like_post'])){
+    // いいねカウントマイナス
+    $likeDec=$db->prepare('UPDATE posts SET like_count=like_count-1 WHERE id=?');
+    $likeDec->bindParam(1,$_POST['like_post'],PDO::PARAM_INT);
+    $likeDec->execute();
+    
+    $likeDelete=$db->prepare('UPDATE likes SET is_deleted=1 WHERE like_member_id=? AND post_id=? AND is_deleted=0');
+    $likeDelete->bindParam(1,$_POST['like_member'],PDO::PARAM_INT);
+    $likeDelete->bindParam(2,$_POST['like_post'],PDO::PARAM_INT);
+    $likeDelete->execute();
+    
+    header('Location:'.$url);
+    exit();
+  }
 }
 
 // 省略ファンクション
@@ -242,7 +253,7 @@ function makeLink($value){
               <?php if($post['reply_post_id']>0): ?>
               <a href="view.php?id=<?php echo h($post['reply_post_id']); ?>">返信元のメッセージ</a>
               <?php endif; ?>
-              <?php if($_SESSION['id']==$post['member_id']): ?>
+              <?php if($_SESSION['id']===$post['member_id']): ?>
               <a href="delete.php?id=<?php echo h($post['id']); ?>" style="color:#f33;">削除</a>
                 <?php endif; ?>
             </p>
