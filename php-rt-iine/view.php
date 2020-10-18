@@ -4,10 +4,17 @@ require('dbconnect.php');
 
 if(empty($_REQUEST['id'])){
   header('Location:index.php');
+  exit();
 }
-$posts=$db->prepare('SELECT m.name,m.picture,p.*,r.rt_member_id,r.rt_id,r.post_member_id,r.post_id,r.post FROM members m,posts p LEFT JOIN retweets r ON p.id=r.rt_id WHERE m.id=p.member_id AND p.id=? AND p.is_deleted=0');
-$posts->execute(array($_REQUEST['id']));
-$post=$posts->fetch();
+if(is_numeric($_REQUEST['id'])){
+  $posts=$db->prepare('SELECT m.name,m.picture,p.*,r.rt_member_id,r.rt_id,r.post_member_id,r.post_id,r.post FROM members m,posts p LEFT JOIN retweets r ON p.id=r.rt_id WHERE m.id=p.member_id AND p.id=? AND p.is_deleted=0');
+  $posts->bindParam(1,$_REQUEST['id'],PDO::PARAM_INT);
+  $posts->execute();
+  $post=$posts->fetch();
+}else{
+  header('Location:index.php');
+  exit();
+}
 
 // ファンクションの省略
 function h($value){
