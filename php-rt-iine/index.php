@@ -121,10 +121,11 @@ if(!empty($_POST['rt_post_id'])){
 // リツイート 取り消し
 if(!empty($_POST['delete_retweet'])){
   if(is_numeric($_POST['post_id']) && is_numeric($_POST['rt_destination'])){
+    // RTカウントのマイナス
     $rtDec=$db->prepare('UPDATE posts SET rt_count=rt_count-1 WHERE id=?');
     $rtDec->bindParam(1,$_POST['post_id'],PDO::PARAM_INT);
     $rtDec->execute();
-    // RTカウントのマイナス
+
     $rtMessageDelete=$db->prepare('UPDATE posts SET is_deleted=1 WHERE id=?');
     $rtMessageDelete->bindParam(1,$_POST['rt_destination'],PDO::PARAM_INT);
     $rtMessageDelete->execute();
@@ -132,42 +133,6 @@ if(!empty($_POST['delete_retweet'])){
     $rtDelete=$db->prepare('UPDATE retweets SET is_deleted=1 WHERE rt_id=?');
     $rtDelete->bindParam(1,$_POST['rt_destination'],PDO::PARAM_INT);
     $rtDelete->execute();
-    
-    header('Location:'.$url);
-    exit();
-  }
-}
-
-// いいね！機能 DB登録
-if(!empty($_POST['like_add'])){
-  if(is_numeric($_POST['like_member']) && is_numeric($_POST['like_post'])){
-    // いいねカウントプラス
-    $likeCount=$db->prepare('UPDATE posts SET like_count=like_count+1 WHERE id=?');
-    $likeCount->bindParam(1,$_POST['like_post'],PDO::PARAM_INT);
-    $likeCount->execute();
-    
-    $likeSet=$db->prepare('INSERT INTO likes SET like_member_id=?,post_id=?,created=NOW()');
-    $likeSet->bindParam(1,$_POST['like_member'],PDO::PARAM_INT);
-    $likeSet->bindParam(2,$_POST['like_post'],PDO::PARAM_INT);
-    $likeSet->execute();
-    
-    header('Location:'.$url);
-    exit();
-  }
-}
-
-// いいね！ 取消し
-if(!empty($_POST['delete_like'])){
-  if(is_numeric($_POST['like_member']) && is_numeric($_POST['like_post'])){
-    // いいねカウントマイナス
-    $likeDec=$db->prepare('UPDATE posts SET like_count=like_count-1 WHERE id=?');
-    $likeDec->bindParam(1,$_POST['like_post'],PDO::PARAM_INT);
-    $likeDec->execute();
-    
-    $likeDelete=$db->prepare('UPDATE likes SET is_deleted=1 WHERE like_member_id=? AND post_id=? AND is_deleted=0');
-    $likeDelete->bindParam(1,$_POST['like_member'],PDO::PARAM_INT);
-    $likeDelete->bindParam(2,$_POST['like_post'],PDO::PARAM_INT);
-    $likeDelete->execute();
     
     header('Location:'.$url);
     exit();
@@ -263,11 +228,11 @@ function makeLink($value){
 
           <?php if(!$like): ?>
             <!-- いいね!登録 -->
-            <li><form action="" method="post"><input type="submit" name="like_add" value="いいね！"><input type="hidden" name="like_member" value="<?php echo h($member['id']); ?>"><input type="hidden" name="like_post" value="<?php echo h($post['id']); ?>"></form></li>
+            <li><form action="like_action.php?page=<?php echo $page; ?>" method="post"><input type="submit" name="like_add" value="いいね！"><input type="hidden" name="like_member" value="<?php echo h($member['id']); ?>"><input type="hidden" name="like_post" value="<?php echo h($post['id']); ?>"></form></li>
 
             <?php else: ?>
             <!-- いいね取消し -->
-            <li><form action="" method="post"><input  class="delete" type="submit" name="delete_like" value="いいね！"><input type="hidden" name="like_member" value="<?php echo h($member['id']); ?>"><input type="hidden" name="like_post" value="<?php echo h($post['id']); ?>"></form></li>
+            <li><form action="like_action.php?page=<?php echo $page; ?>" method="post"><input  class="delete" type="submit" name="delete_like" value="いいね！"><input type="hidden" name="like_member" value="<?php echo h($member['id']); ?>"><input type="hidden" name="like_post" value="<?php echo h($post['id']); ?>"></form></li>
             <?php endif; ?>
             <li><?php if($post['like_count']>0){echo $post['like_count'];} ?></li>
 
