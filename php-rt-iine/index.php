@@ -56,13 +56,7 @@ if(!empty($_POST['message'])){
 }
 
 // ページング(１ページ５投稿)
-if(is_numeric($_REQUEST['page'])){
-  $page=$_REQUEST['page'] ?? NULL;
-}
-if($page===''){
-  $page=1;
-}
-$page=max($page,1);
+isset($_REQUEST['page']) && is_numeric($_REQUEST['page']) ? $page=$_REQUEST['page'] : $page=max($page,1);
 
 $url='index.php?page='.$page;
 
