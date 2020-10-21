@@ -27,7 +27,7 @@ if(!empty($_POST['message'])){
 }
 
 // ページング(１ページ５投稿)
-isset($_REQUEST['page']) && is_numeric($_REQUEST['page']) ? $page=$_REQUEST['page'] : $page=max($page,1);
+$page=isset($_REQUEST['page']) && is_numeric($_REQUEST['page']) ? $_REQUEST['page'] : 1;
 
 $url='index.php?page='.$page;
 
@@ -90,8 +90,8 @@ function makeLink($value){
         <form action="<?php if(!empty($_POST['retweet'])){echo 'rt_action.php?page='.$page;} ?>" method="post">
           <dl>
             <dt><?php echo h($member['name']); ?>さん、メッセージをどうぞ</dt>
-            <dd><textarea name="message" cols="50" rows="5" <?php if(isset($_POST['retweet'])){echo 'placeholder="コメントをつけてリツイート"';} ?>><?php echo h($message) ?? NULL; ?></textarea>
-            <input type="hidden" name="reply_post_id" value="<?php echo h($_REQUEST['res']) ?? NULL; ?>"></dd>
+            <dd><textarea name="message" cols="50" rows="5" <?php if(isset($_POST['retweet'])){echo 'placeholder="コメントをつけてリツイート"';} ?>><?php if(isset($message)){echo h($message);} ?></textarea>
+            <input type="hidden" name="reply_post_id" value="<?php if(isset($_REQUEST['res'])){echo h($_REQUEST['res']);} ?>"></dd>
           </dl>
           <!-- リツイート投稿プレビュー -->
           <?php if(isset($_POST['retweet'])): ?>
