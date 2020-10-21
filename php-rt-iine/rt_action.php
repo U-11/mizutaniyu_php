@@ -16,7 +16,7 @@ if(isset($_SESSION['id']) && is_numeric($_SESSION['id']) && $_SESSION['time']+36
 }
 
 // ページ
-isset($_REQUEST['page']) && is_numeric($_REQUEST['page']) ? $page=$_REQUEST['page'] : $page=max($page,1);
+$page=isset($_REQUEST['page']) && is_numeric($_REQUEST['page']) ? $page=$_REQUEST['page'] : 1;
 
 $counts=$db->query('SELECT COUNT(*) AS cnt FROM posts WHERE is_deleted=0');
 $cnt=$counts->fetch();
@@ -52,10 +52,13 @@ if(!empty($_POST['message'])){
 
     header('Location:index.php');
     exit();
+  }else{
+    header('Location:index.php');
+    exit();
   }
 }else{
 // コメントなしリツイートのDB登録
-  if(is_numeric($_POST['rt_post_id']) && is_numeric($_POST['post_member_id'])){
+  if(isset($_POST['rt_post_id']) && is_numeric($_POST['rt_post_id']) && is_numeric($_POST['post_member_id'])){
     $nom_rt=$db->prepare('INSERT INTO posts SET message="RT",member_id=?,created=NOW()');
     $nom_rt->bindParam(1,$member['id'],PDO::PARAM_INT);
     $nom_rt->execute();
@@ -95,6 +98,9 @@ if(!empty($_POST['delete_retweet'])){
     $rtDelete->execute();
     
     header('Location:'.$url);
+    exit();
+  }else{
+    header('Location:index.php');
     exit();
   }
 }
