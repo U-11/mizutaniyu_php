@@ -40,6 +40,9 @@ if(!empty($_POST['like_add'])){
     
     header('Location:'.$url);
     exit();
+  }else{
+    header('Location:index.php');
+    exit();
   }
 }
 
@@ -57,6 +60,9 @@ if(!empty($_POST['delete_like'])){
     $likeDelete->execute();
     
     header('Location:'.$url);
+    exit();
+  }else{
+    header('Location:index.php');
     exit();
   }
 }
