@@ -16,7 +16,7 @@ if(isset($_SESSION['id']) && is_numeric($_SESSION['id']) && $_SESSION['time']+36
 }
 
 // ページ
-isset($_REQUEST['page']) && is_numeric($_REQUEST['page']) ? $page=$_REQUEST['page'] : $page=max($page,1);
+$page=isset($_REQUEST['page']) && is_numeric($_REQUEST['page']) ? $page=$_REQUEST['page'] : 1;
 
 $counts=$db->query('SELECT COUNT(*) AS cnt FROM posts WHERE is_deleted=0');
 $cnt=$counts->fetch();
