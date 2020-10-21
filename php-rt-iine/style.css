@@ -50,7 +50,7 @@ h2 {
 
 #content {
 	padding: 20px;
-	/* background: url(images/bg_content.png) left bottom no-repeat #ecf7fc; */
+	background: url(images/bg_content.png) left bottom no-repeat #ecf7fc;
 	width: 720px;
 	min-height: 490px;
 	margin: 0 auto;
@@ -224,4 +224,3 @@ li {
 	min-width:12px;
 	margin:5px;
 }
-if($member['id']==$like(like_member_id) && $post['id']==$like['post_id'])
