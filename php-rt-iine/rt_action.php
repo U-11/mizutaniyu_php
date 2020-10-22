@@ -78,6 +78,9 @@ if(!empty($_POST['message'])){
 
     header('Location:index.php');
     exit();
+  }else{
+    header('Location:index.php');
+    exit();
   }
 }
 
@@ -103,4 +106,7 @@ if(!empty($_POST['delete_retweet'])){
     header('Location:index.php');
     exit();
   }
+}else{
+  header('Location:index.php');
+  exit();
 }

@@ -44,6 +44,9 @@ if(!empty($_POST['like_add'])){
     header('Location:index.php');
     exit();
   }
+}else{
+  header('Location:index.php');
+  exit();
 }
 
 // いいね！ 取消し
@@ -65,4 +68,7 @@ if(!empty($_POST['delete_like'])){
     header('Location:index.php');
     exit();
   }
+}else{
+  header('Location:index.php');
+  exit();
 }
