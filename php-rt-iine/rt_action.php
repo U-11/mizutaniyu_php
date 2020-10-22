@@ -78,9 +78,6 @@ if(!empty($_POST['message'])){
 
     header('Location:index.php');
     exit();
-  }else{
-    header('Location:index.php');
-    exit();
   }
 }
 
